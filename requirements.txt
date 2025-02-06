@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+boto3
+celery
+whisper
+pyannote.audio
+python-dotenv
+redis
