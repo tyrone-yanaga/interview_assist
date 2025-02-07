@@ -1,28 +1,25 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  web:
-    build: .
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: audio_db
     ports:
-      - "8001:8001"
-    env_file:
-      - .env
-    depends_on:
-      - redis
+      - "5432:5432"
     volumes:
-      - .:/app
+      - postgres_data:/var/lib/postgresql/data
 
-  worker:
-    build: .
-    command: celery -A main.celery worker --loglevel=info
-    env_file:
-      - .env
-    depends_on:
-      - redis
-    volumes:
-      - .:/app
-
-  redis:
-    image: redis:latest
+  backend:
+    build: ./no-caps
     ports:
-      - "6379:6379"
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://user:password@db:5432/audio_db
+
+volumes:
+  postgres_data:

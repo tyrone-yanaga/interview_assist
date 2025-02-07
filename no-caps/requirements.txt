@@ -5,4 +5,5 @@ celery
 whisper
 pyannote.audio
 python-dotenv
-redis
+sqlalchemy
+pydantic-settings
