@@ -7,3 +7,8 @@ pyannote.audio
 python-dotenv
 sqlalchemy
 pydantic-settings
+psycopg2-binary
+python-jose[cryptography]
+passlib
+mutagen
+python-multipart
