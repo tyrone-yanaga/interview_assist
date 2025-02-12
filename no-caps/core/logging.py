@@ -1,11 +1,13 @@
 # app/core/logging.py
 import logging
 from logging.handlers import RotatingFileHandler
+import os
 
 
 def setup_logging():
     logger = logging.getLogger("no-caps")
     logger.setLevel(logging.INFO)
+    os.makedirs('logs', exist_ok=True)
 
     formatter = logging.Formatter(
         "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
