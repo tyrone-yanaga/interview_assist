@@ -22,7 +22,7 @@ async def process_audio_upload(file: UploadFile, db: Session):
     )
 
 
-async def get_audio_file(audio_id, db):
+async def get_audio_files(user_id: int, db: Session):
     # TODO JWT user_id extraction/verification
     # user_id = content extracted from JWT
     # else no audio return 404
@@ -31,4 +31,4 @@ async def get_audio_file(audio_id, db):
     #       (maybe request if a record existstied to user_id&audio_id)
     #   return audio_id
     # else return permission denied
-    return "TODO"
+    return audio_crud.get_user_audio_files(db=db, user_id=user_id)

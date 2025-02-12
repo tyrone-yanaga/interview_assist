@@ -12,7 +12,7 @@ class Audio(Base):
     filename = Column(String)
     file_path = Column(String)
     duration = Column(Integer)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now())
     user_id = Column(Integer, ForeignKey("users.id"))
     owner = relationship("User", back_populates="audio_files")
     transcription = relationship("Transcription", back_populates="audio_file")

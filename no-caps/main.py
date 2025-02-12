@@ -1,9 +1,9 @@
 # app/main.py
 from fastapi import FastAPI
-from app.api.v1.routers import api_router
-from app.core.config import settings
-from app.db.session import engine
-from app.db.models import Base
+from api.routers import api_router
+from core.config import settings
+from db.session import engine
+from db.models import Base
 
 app = FastAPI(title=settings.PROJECT_NAME, version=settings.VERSION)
 
