@@ -5,6 +5,9 @@ FROM python:3.9-slim
 # Set the working directory in the container
 WORKDIR /no-caps
 
+# Install sys dependencies
+RUN apt-get update && apt-get install -y libgomp1
+
 # Copy the requirements file into the container
 COPY requirements.txt .
 
