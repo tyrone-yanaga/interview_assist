@@ -2,8 +2,7 @@
 from fastapi import FastAPI
 from api.routers import api_router
 from core.config import settings
-from db.session import engine
-from db.models import Base
+from db.session import engine, Base
 
 app = FastAPI(title=settings.PROJECT_NAME, version=settings.VERSION)
 
