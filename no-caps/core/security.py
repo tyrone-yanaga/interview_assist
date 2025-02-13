@@ -1,7 +1,7 @@
 # app/core/security.py
 from datetime import datetime, timedelta
 from typing import Optional
-from python-jose import jwt
+from jose import jwt
 from passlib.context import CryptContext
 from .config import settings
 
