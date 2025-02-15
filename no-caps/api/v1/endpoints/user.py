@@ -5,8 +5,6 @@ from pydantic import BaseModel, EmailStr, constr
 from typing import Optional
 from db.session import get_db
 from db.crud import user as user_crud
-from db.models.user import User as user_model
-from core.security import create_access_token
 
 
 class UserUpdate(BaseModel):
@@ -33,33 +31,10 @@ def create_user(email: str, password: str, db: Session = Depends(get_db)):
 
 # TODO this may need to be updated for JWT tokens,
 # or caller can extract email
-@router.get("/get_user/}")
-def get_user(db: Session, email: str):
-    db_user = user_crud.get_user_by_email(db, email=email)
+@router.get("/get_user/")
+def get_user(db: Session, id: int):
+    db_user = user_crud.get_user(db, user_id=id)
     return db_user
-
-#  TODO not sure if needed, just adds complexity
-# @router.put("/users/me", response_model=UserUpdate)
-# async def update_user_me(
-#     update_data: UserUpdate,
-#     current_user: user_model = Depends(get_current_user),
-#     db: Session = Depends(get_db),
-# ):
-#     """
-#     Update current user's information.
-#     Only the user can update their own information.
-#     """
-#     updated_user = user_crud.update_user(
-#         db,
-#         user_id=current_user.id,
-#         email=update_data.email,
-#         password=update_data.password,
-#         is_active=update_data.is_active,
-#     )
-
-#     return UserUpdate(
-#         email=updated_user.email,
-#         is_active=updated_user.is_active)
 
 
 @router.put("/users/{user_id}", response_model=UserUpdate)
