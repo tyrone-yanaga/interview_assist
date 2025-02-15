@@ -26,6 +26,7 @@ def get_user_audio_files(user_id: int, db: Session) -> List[Audio]:
 
 def get_audio_or_404(db: Session, audio_id: int, user_id: int) -> Audio:
     """
+    TODO - should user access be in audio_service?
     Retrieve an audio file by its ID and user ID. If the audio does not exist
     or does not belong to the user, raise an HTTP 404 error.
 
