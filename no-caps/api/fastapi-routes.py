@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import Optional
 from db.session import get_db
 from . import schemas, models
 
 # Create routers
 user_router = APIRouter(prefix="/users", tags=["users"])
 audio_router = APIRouter(prefix="/audio", tags=["audio"])
-transcription_router = APIRouter(prefix="/transcriptions", tags=["transcriptions"])
+transcription_router = APIRouter(
+    prefix="/transcriptions", tags=["transcriptions"])
 
 
 # User routes
@@ -79,7 +80,8 @@ async def list_transcriptions(
 @transcription_router.get(
     "/{transcription_id}", response_model=schemas.TranscriptionResponse
 )
-async def get_transcription(transcription_id: int, db: Session = Depends(get_db)):
+async def get_transcription(
+        transcription_id: int, db: Session = Depends(get_db)):
     transcription = (
         db.query(models.TranscriptionModel)
         .filter(models.TranscriptionModel.id == transcription_id)

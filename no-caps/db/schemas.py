@@ -1,4 +1,5 @@
-from pydantic import BaseModel, EmailStr
+# /db/schemas.py
+from pydantic import EmailStr, BaseModel
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from enum import Enum
