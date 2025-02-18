@@ -7,8 +7,10 @@ pyannote.audio
 python-dotenv
 sqlalchemy
 pydantic-settings
+email-validator
 psycopg2-binary
 python-jose[cryptography]
 passlib
 mutagen
 python-multipart
+httpx

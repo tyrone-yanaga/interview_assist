@@ -1,9 +1,9 @@
-# no-caps/Dockerfile
+# no_caps/Dockerfile
 # Use an official Python runtime as a parent image
 FROM python:3.9-slim
 
 # Set the working directory in the container
-WORKDIR /no-caps
+WORKDIR /no_caps
 
 # Install sys dependencies
 RUN apt-get update && apt-get install -y libgomp1

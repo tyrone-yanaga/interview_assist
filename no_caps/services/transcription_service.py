@@ -1,6 +1,6 @@
 from typing import Optional, Tuple, List, Dict
 from sqlalchemy.orm import Session
-import whisper
+import os, whisper
 from pyannote.audio import Pipeline
 from db.crud.transcription import TranscriptionCRUD
 from db.crud.audio import get_audio_or_404
@@ -25,7 +25,8 @@ class TranscriptionService:
 
         # Load pyannote.audio pipeline for diarization
         self.diarization_pipeline = Pipeline.from_pretrained(
-            "pyannote/speaker-diarization")
+            "pyannote/speaker-diarization-3.1",
+            use_auth_token="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")
 
     async def create_transcription_job(
         self,

@@ -5,7 +5,7 @@ import os
 
 
 def setup_logging():
-    logger = logging.getLogger("no-caps")
+    logger = logging.getLogger("no_caps")
     logger.setLevel(logging.INFO)
     os.makedirs('logs', exist_ok=True)
 

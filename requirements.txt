@@ -1,0 +1,25 @@
+fastapi
+uvicorn
+boto3
+celery
+pyannote.audio
+pydantic-settings
+email-validator
+python-jose[cryptography]
+passlib
+mutagen
+python-multipart
+
+pytest==7.4.0
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+httpx==0.24.1
+sqlalchemy==2.0.19
+psycopg2-binary==2.9.6
+asyncpg==0.28.0
+alembic==1.11.1
+python-dotenv==1.0.0
+openai-whisper==20240930
+# Explicitly pin these versions to avoid build issues
+setuptools>=65.5.1
+wheel>=0.38.0
