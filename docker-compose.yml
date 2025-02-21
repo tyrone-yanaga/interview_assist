@@ -37,7 +37,7 @@ services:
       - backend
       - db
     environment:
-      - DATABASE_URL=postgresql://user:password@db:5432/mydb
+      - DATABASE_URL=postgresql://user:password@db:5432/audio_db
     command: >
       sh -c "while ! pg_isready -h db -p 5432 -U user; do sleep 1; done; pytest"
 volumes:

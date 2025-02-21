@@ -16,21 +16,16 @@ RUN apt-get update && \
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PYTHONPATH=/app
+    PYTHONPATH=/no_caps
 
 # Copy requirements file
 COPY requirements.txt .
-
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the test files
-COPY no_caps/tests/ ./tests/
+COPY no_caps/ .
 COPY pytest.ini .
-
-# Set Python path
-ENV PYTHONPATH=/no_caps
-
 
 # Command to run tests
 CMD ["pytest"]

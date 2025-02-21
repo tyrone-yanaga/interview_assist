@@ -8,3 +8,11 @@ api_router.include_router(audio.router, prefix="/audio", tags=["audio"])
 api_router.include_router(
     transcription.router, prefix="/transcription", tags=["transcription"])
 #api_router.include_router(playback.router, prefix="/playback", tags=["playback"])
+
+# Include these routers in your main FastAPI app:
+"""
+app = FastAPI()
+app.include_router(user_router)
+app.include_router(audio_router)
+app.include_router(transcription_router)
+"""

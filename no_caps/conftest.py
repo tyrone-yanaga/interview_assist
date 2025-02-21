@@ -8,7 +8,7 @@ from db.schemas import User
 from main import app
 
 # Use the database URL for the Dockerized database
-SQLALCHEMY_DATABASE_URL = "postgresql://user:password@localhost:5432/mydb"
+SQLALCHEMY_DATABASE_URL = "postgresql://user:password@db:5432/audio_db"
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 TestingSessionLocal = sessionmaker(autocommit=False,

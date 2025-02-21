@@ -5,6 +5,10 @@ from db.crud import user as user_crud
 # from db.schemas import UserResponse
 # from db.models import User
 
+import os
+import sys
+print("Current Working Directory:", os.getcwd())
+print("Python Path:", sys.path)
 
 @pytest.mark.asyncio
 async def test_create_user(client):
