@@ -1,18 +1,25 @@
 # app/api/v1/routers.py
 from fastapi import APIRouter
-from api.v1.endpoints import user, audio, transcription, playback
+from api.v1.endpoints import user, audio, transcription
 
+# Create main v1 router
 api_router = APIRouter()
-api_router.include_router(user.router, prefix="/users", tags=["users"])
-api_router.include_router(audio.router, prefix="/audio", tags=["audio"])
-api_router.include_router(
-    transcription.router, prefix="/transcription", tags=["transcription"])
-#api_router.include_router(playback.router, prefix="/playback", tags=["playback"])
 
-# Include these routers in your main FastAPI app:
-"""
-app = FastAPI()
-app.include_router(user_router)
-app.include_router(audio_router)
-app.include_router(transcription_router)
-"""
+# Include sub-routers
+api_router.include_router(
+    user.router,
+    prefix="/users",
+    tags=["users"]
+)
+
+api_router.include_router(
+    audio.router,
+    prefix="/audio",
+    tags=["audio"]
+)
+
+api_router.include_router(
+    transcription.router,
+    prefix="/transcriptions",  # Note: plural form
+    tags=["transcriptions"]
+)

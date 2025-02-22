@@ -1,5 +1,6 @@
 # app/db/crud/user.py
 from typing import Optional
+from db.schemas import UserCreate
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException
@@ -7,7 +8,6 @@ from db.models.user import User
 from core.security import get_password_hash
 
 
-@staticmethod
 def update_user(
     db: Session,
     user_id: int,
@@ -81,9 +81,9 @@ def get_user_by_email(db: Session, email: str):
     return db.query(User).filter(User.email == email).first()
 
 
-def create_user(db: Session, email: str, password: str):
-    hashed_password = get_password_hash(password)
-    db_user = User(email=email, hashed_password=hashed_password)
+def create_user(db: Session, user: UserCreate):
+    hashed_password = get_password_hash(user.password)
+    db_user = User(email=user.email, hashed_password=hashed_password)
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
