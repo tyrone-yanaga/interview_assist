@@ -95,3 +95,37 @@ async def get_transcription_status(
         response["error"] = transcription.error_message
 
     return response
+
+
+@router.put("/transcription/{transcription_id}")
+async def update_transcription(
+    transcription_id: int,
+    transcription_update: Dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> Dict:
+    """Update a transcription."""
+
+    # Check user has access to this transcription
+    if not TranscriptionService.has_access_to_transcription(
+            db=db,
+            transcription=transcription_id,
+            user_id=current_user.id):
+
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    updated_transcription = await TranscriptionCRUD.update_transcription_content(
+        db,
+        transcription_id,
+        transcription_update)
+
+    if not updated_transcription:
+        raise HTTPException(status_code=404, detail="Transcription not found")
+
+    response = {
+        "id": updated_transcription.id,
+        "status": updated_transcription.status,
+        "created_at": updated_transcription.created_at
+    }
+
+    return response

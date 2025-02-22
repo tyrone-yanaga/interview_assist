@@ -46,8 +46,6 @@ class TranscriptionCRUD:
         db: Session,
         transcription_id: int,
         content: str,
-        word_count: int,
-        confidence_score: float
     ) -> Transcription:
         """Update transcription with completed content."""
         transcription = TranscriptionCRUD.get_transcription(
@@ -56,8 +54,7 @@ class TranscriptionCRUD:
             transcription.content = content
             transcription.status = TranscriptionStatus.COMPLETED
             transcription.completed_at = datetime.now()
-            transcription.word_count = word_count
-            transcription.confidence_score = confidence_score
+
             db.commit()
             db.refresh(transcription)
         return transcription
