@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from db.session import Base
-from db.schemas import User
+from db.models.user import User
 from main import app
 
 # Use the database URL for the Dockerized database

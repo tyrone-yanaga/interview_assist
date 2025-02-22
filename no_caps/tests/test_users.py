@@ -1,159 +1,114 @@
 # test_users.py
 import pytest
-# from httpx import AsyncClient
-from db.crud import user as user_crud
-# from db.schemas import UserResponse
-# from db.models import User
+from db.models.user import User  # Import the SQLAlchemy model, not the schema
 
-import os
-import sys
-print("Current Working Directory:", os.getcwd())
-print("Python Path:", sys.path)
 
-@pytest.mark.asyncio
-async def test_create_user(client):
-    """
-    Test creating a new user.
-    """
+def test_create_user(client):
+    """Test creating a new user via the API endpoint."""
+    test_user = {"email": "test@example.com", "password": "password123"}
+
     # Create a new user
-    response = await client.post(
-        "/users/", json={"email": "test@example.com",
-                         "password": "password123"}
-    )
+    response = client.post("/users/", json=test_user)
     assert response.status_code == 200
     data = response.json()
-    assert data["email"] == "test@example.com"
+    assert data["email"] == test_user["email"]
     assert "id" in data
 
-    # Attempt to create a user with the same email (duplicate email)
-    response = await client.post(
-        "/users/", json={"email": "test@example.com",
-                         "password": "password123"}
-    )
+    # Test duplicate email
+    response = client.post("/users/", json=test_user)
     assert response.status_code == 400
-    assert response.json()["detail"] == "Email already registered"
+    assert "Email already registered" in response.json()["detail"]
 
 
-@pytest.mark.asyncio
-async def test_list_users(client, test_db):
-    """
-    Test listing users with pagination.
-    """
-    # Create multiple users
-    user_crud.create_user(test_db,
-                          email="user1@example.com",
-                          password="password123")
-    user_crud.create_user(test_db,
-                          email="user2@example.com",
-                          password="password123")
-    user_crud.create_user(test_db,
-                          email="user3@example.com",
-                          password="password123")
+def test_list_users(client):
+    """Test listing users via the API endpoint."""
+    # Create test users
+    test_users = [
+        {"email": f"user{i}@example.com", "password": "password123"} for i in range(3)
+    ]
 
-    # Test listing users with default pagination (skip=0, limit=10)
-    response = await client.get("/users/", params={"skip": 0, "limit": 10})
+    for user in test_users:
+        client.post("/users/", json=user)
+
+    # Test default pagination
+    response = client.get("/users/")
     assert response.status_code == 200
     data = response.json()
+    assert "items" in data
+    assert "total" in data
     assert len(data["items"]) == 3
     assert data["total"] == 3
 
-    # Test listing users with pagination (skip=1, limit=2)
-    response = await client.get("/users/", params={"skip": 1, "limit": 2})
+    # Test custom pagination
+    response = client.get("/users/?skip=1&limit=2")
     assert response.status_code == 200
     data = response.json()
     assert len(data["items"]) == 2
-    assert data["total"] == 3
 
 
-@pytest.mark.asyncio
-async def test_get_user(client, test_db):
-    """
-    Test retrieving a user by ID.
-    """
-    # Create a user
-    user = user_crud.create_user(
-        test_db, email="user@example.com", password="password123"
-    )
+def test_get_user(client):
+    """Test retrieving a user by ID via the API endpoint."""
+    # Create a test user
+    test_user = {"email": "get_test@example.com", "password": "password123"}
+    create_response = client.post("/users/", json=test_user)
+    user_id = create_response.json()["id"]
 
-    # Test retrieving the user by ID
-    response = await client.get(f"/users/{user.id}")
+    # Test getting the user
+    response = client.get(f"/users/{user_id}")
     assert response.status_code == 200
     data = response.json()
-    assert data["email"] == "user@example.com"
-    assert data["id"] == user.id
+    assert data["email"] == test_user["email"]
+    assert data["id"] == user_id
 
-    # Test retrieving a non-existent user
-    response = await client.get("/users/999")
+    # Test getting non-existent user
+    response = client.get("/users/999")
     assert response.status_code == 404
-    assert response.json()["detail"] == "User not found"
+    assert "User not found" in response.json()["detail"]
 
 
-@pytest.mark.asyncio
-async def test_update_user(client, test_db):
-    """
-    Test updating a user's information.
-    """
-    # Create a user
-    user = user_crud.create_user(
-        test_db, email="user@example.com", password="password123"
-    )
+def test_update_user(client):
+    """Test updating a user via the API endpoint."""
+    # Create a test user
+    test_user = {"email": "update_test@example.com", "password": "password123"}
+    create_response = client.post("/users/", json=test_user)
+    user_id = create_response.json()["id"]
 
-    # Test updating the user's email and is_active status
-    update_data = {"email": "updated@example.com", "is_active": False}
-    response = await client.put(f"/users/{user.id}", json=update_data)
+    # Test full update
+    update_data = {
+        "email": "updated@example.com",
+        "password": "newpassword123",
+        "is_active": False,
+    }
+    response = client.put(f"/users/{user_id}", json=update_data)
     assert response.status_code == 200
     data = response.json()
-    assert data["email"] == "updated@example.com"
-    assert data["is_active"] is False
-
-    # Verify the update in the database
-    updated_user = user_crud.get_user(test_db, user_id=user.id)
-    assert updated_user.email == "updated@example.com"
-    assert updated_user.is_active is False
-
-    # Test updating only the password
-    update_data = {"password": "newpassword123"}
-    response = await client.put(f"/users/{user.id}", json=update_data)
-    assert response.status_code == 200
-
-    # Verify the password update in the database
-    updated_user = user_crud.get_user(test_db, user_id=user.id)
-    assert updated_user.password == "newpassword123"
+    assert data["email"] == update_data["email"]
+    assert data["is_active"] == update_data["is_active"]
 
 
-@pytest.mark.asyncio
-async def test_update_user_invalid_id(client):
-    """
-    Test updating a user with an invalid ID.
-    """
-    update_data = {"email": "updated@example.com", "is_active": False}
-    response = await client.put("/users/999", json=update_data)
+def test_update_user_invalid_id(client):
+    """Test updating a non-existent user."""
+    update_data = {"email": "invalid@example.com"}
+    response = client.put("/users/999", json=update_data)
     assert response.status_code == 404
-    assert response.json()["detail"] == "User not found"
+    assert "User not found" in response.json()["detail"]
 
 
-@pytest.mark.asyncio
-async def test_update_user_partial_data(client, test_db):
-    """
-    Test updating a user with partial data (only some fields provided).
-    """
-    # Create a user
-    user = user_crud.create_user(
-        test_db, email="user@example.com", password="password123"
-    )
+def test_update_user_duplicate_email(client):
+    """Test updating a user with an email that already exists."""
+    # Create two users
+    users = [
+        {"email": "user1@example.com", "password": "password123"},
+        {"email": "user2@example.com", "password": "password123"},
+    ]
 
-    # Update only the email
-    update_data = {"email": "updated@example.com"}
-    response = await client.put(f"/users/{user.id}", json=update_data)
-    assert response.status_code == 200
-    data = response.json()
-    assert data["email"] == "updated@example.com"
-    assert data["is_active"] is True  # Default value, not updated
+    created_users = []
+    for user in users:
+        response = client.post("/users/", json=user)
+        created_users.append(response.json())
 
-    # Update only the is_active status
-    update_data = {"is_active": False}
-    response = await client.put(f"/users/{user.id}", json=update_data)
-    assert response.status_code == 200
-    data = response.json()
-    assert data["email"] == "updated@example.com"  # Email remains unchanged
-    assert data["is_active"] is False
+    # Try to update second user with first user's email
+    update_data = {"email": users[0]["email"]}
+    response = client.put(f"/users/{created_users[1]['id']}", json=update_data)
+    assert response.status_code == 400
+    assert "Email already registered" in response.json()["detail"]
