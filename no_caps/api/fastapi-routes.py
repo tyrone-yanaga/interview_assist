@@ -65,12 +65,12 @@ async def list_transcriptions(
     audio_id: Optional[int] = None,
     db: Session = Depends(get_db),
 ):
-    query = db.query(models.TranscriptionModel)
+    query = db.query(models.Transcription)
 
     if status:
-        query = query.filter(models.TranscriptionModel.status == status)
+        query = query.filter(models.Transcription.status == status)
     if audio_id:
-        query = query.filter(models.TranscriptionModel.audio_id == audio_id)
+        query = query.filter(models.Transcription.audio_id == audio_id)
 
     transcriptions = query.offset(skip).limit(limit).all()
     total = query.count()
@@ -83,8 +83,8 @@ async def list_transcriptions(
 async def get_transcription(
         transcription_id: int, db: Session = Depends(get_db)):
     transcription = (
-        db.query(models.TranscriptionModel)
-        .filter(models.TranscriptionModel.id == transcription_id)
+        db.query(models.Transcription)
+        .filter(models.Transcription.id == transcription_id)
         .first()
     )
     if not transcription:

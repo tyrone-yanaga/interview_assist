@@ -13,7 +13,7 @@ class TranscriptionStatus(enum.Enum):
     FAILED = "failed"
 
 
-class TranscriptionModel(Base):
+class Transcription(Base):
     """Database model for transcriptions.
 
     Responsibilities:
@@ -35,7 +35,7 @@ class TranscriptionModel(Base):
     error_message = Column(String, nullable=True)
 
     # Foreign keys and relationships
-    audio_id = Column(Integer, ForeignKey("audio_files.id"))
+    audio_id = Column(Integer, ForeignKey("audio_files.id"), unique=True)
     audio_file = relationship("Audio", back_populates="transcription")
 
     # Optional metadata

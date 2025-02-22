@@ -4,7 +4,7 @@ import os, whisper
 from pyannote.audio import Pipeline
 from db.crud.transcription import TranscriptionCRUD
 from db.crud.audio import get_audio_or_404
-from db.models.transcription import TranscriptionModel, TranscriptionStatus
+from db.models.transcription import Transcription, TranscriptionStatus
 from core.config import settings
 from core.logging import logger
 
@@ -33,7 +33,7 @@ class TranscriptionService:
         db: Session,
         audio_id: int,
         language: str = "en"
-    ) -> TranscriptionModel:
+    ) -> Transcription:
         """Create a new transcription job."""
         return TranscriptionCRUD.create_transcription(
             db=db,
@@ -138,7 +138,7 @@ class TranscriptionService:
     def has_access_to_transcription(
             self,
             db: Session,
-            transcription: TranscriptionModel,
+            transcription: Transcription,
             user_id: int) -> bool:
         """does the user have access to this transcription"""
 

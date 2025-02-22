@@ -1,7 +1,7 @@
 # app/db/crud/transcription.py
 from typing import Optional
 from sqlalchemy.orm import Session
-from db.models.transcription import TranscriptionModel, TranscriptionStatus
+from db.models.transcription import Transcription, TranscriptionStatus
 from datetime import datetime
 
 
@@ -19,9 +19,9 @@ class TranscriptionCRUD:
         db: Session,
         audio_id: int,
         language: str = "en"
-    ) -> TranscriptionModel:
+    ) -> Transcription:
         """Create a new transcription record."""
-        db_transcription = TranscriptionModel(
+        db_transcription = Transcription(
             audio_id=audio_id,
             language=language,
             status=TranscriptionStatus.PENDING
@@ -35,10 +35,10 @@ class TranscriptionCRUD:
     def get_transcription(
         db: Session,
         transcription_id: int
-    ) -> Optional[TranscriptionModel]:
+    ) -> Optional[Transcription]:
         """Retrieve a transcription by ID."""
-        return db.query(TranscriptionModel).filter(
-            TranscriptionModel.id == transcription_id
+        return db.query(Transcription).filter(
+            Transcription.id == transcription_id
         ).first()
 
     @staticmethod
@@ -48,7 +48,7 @@ class TranscriptionCRUD:
         content: str,
         word_count: int,
         confidence_score: float
-    ) -> TranscriptionModel:
+    ) -> Transcription:
         """Update transcription with completed content."""
         transcription = TranscriptionCRUD.get_transcription(
             db, transcription_id)
@@ -68,7 +68,7 @@ class TranscriptionCRUD:
         transcription_id: int,
         status: TranscriptionStatus,
         error_message: Optional[str] = None
-    ) -> TranscriptionModel:
+    ) -> Transcription:
         """Update transcription status."""
         transcription = TranscriptionCRUD.get_transcription(
             db, transcription_id)

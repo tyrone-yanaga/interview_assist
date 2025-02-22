@@ -14,5 +14,8 @@ class Audio(Base):
     duration = Column(Integer)
     created_at = Column(DateTime, default=datetime.now())
     user_id = Column(Integer, ForeignKey("users.id"))
+    # relationships
     owner = relationship("User", back_populates="audio_files")
-    transcription = relationship("Transcription", back_populates="audio_file")
+    transcription = relationship("Transcription",
+                                 back_populates="audio_file",
+                                 uselist=False)
