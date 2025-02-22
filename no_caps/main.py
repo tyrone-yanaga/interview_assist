@@ -27,12 +27,3 @@ app.middleware("http")(debug_middleware)
 
 # Include routers
 app.include_router(api_router, prefix=settings.API_V1_STR)
-
-
-# Print all registered routes at startup
-@app.on_event("startup")
-async def startup_event():
-    logger.debug("FastAPI app starting up")
-    logger.debug("Registered routes:")
-    for route in app.routes:
-        logger.debug(f"{route.methods} {route.path}")
