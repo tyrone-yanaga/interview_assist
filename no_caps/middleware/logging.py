@@ -1,27 +1,49 @@
 # middleware/logging.py
-import logging
 from fastapi import Request
+import json
+from starlette.responses import Response, StreamingResponse, JSONResponse
+from typing import Callable
+import logging
 
 logger = logging.getLogger(__name__)
 
 
-async def debug_middleware(request: Request, call_next):
-    logger.debug(f"==== Incoming Request ====")
-    logger.debug(f"Method: {request.method}")
-    logger.debug(f"Path: {request.url.path}")
-    logger.debug(f"Headers: {dict(request.headers)}")
+async def debug_middleware(request: Request, call_next: Callable):
+    """Debug middleware that preserves response body"""
 
-    try:
-        if request.method in ["POST", "PUT", "PATCH"]:
+    # Log request details
+    print("\n=== Incoming Request ===")
+    print(f"Method: {request.method}")
+    print(f"Path: {request.url.path}")
+    print(f"Headers: {dict(request.headers)}")
+
+    # Log request body for POST/PUT requests
+    if request.method in ["POST", "PUT", "PATCH"]:
+        try:
             body = await request.body()
             if body:
-                logger.debug(f"Request Body: {body.decode()}")
-    except Exception as e:
-        logger.debug(f"Could not log request body: {str(e)}")
+                try:
+                    json_body = json.loads(body)
+                    print(f"Request body: {json.dumps(json_body, indent=2)}")
+                except json.JSONDecodeError:
+                    print(f"Request body: {body.decode()}")
+        except Exception as e:
+            print(f"Could not read request body: {str(e)}")
 
+    # Log registered routes
+    print("\nRegistered routes:")
+    for route in request.app.routes:
+        print(f"{route.methods} {route.path}")
+
+    # Get response
     response = await call_next(request)
 
-    logger.debug("==== Response ====")
-    logger.debug(f"Status Code: {response.status_code}")
+    print("\n=== Response ===")
+    print(f"Status: {response.status_code}")
 
+    # Only try to log JSON responses without modifying them
+    if isinstance(response, JSONResponse):
+        print(f"Response body: {json.dumps(response.body.decode(), indent=2)}")
+
+    print("=== End Request ===\n")
     return response
