@@ -1,15 +1,39 @@
 # test_users.py
+import logging
+from core.config import settings
+import json
 import pytest
 from db.models.user import User  # Import the SQLAlchemy model, not the schema
+logger = logging.getLogger(__name__)
 
 
 def test_create_user(client):
     """Test creating a new user via the API endpoint."""
+    logger.debug("\n=== Starting test_create_user ===")
+
+    # Print all registered routes
+    logger.debug("Available routes:")
+    for route in client.app.routes:
+        logger.debug(f"{route.methods} {route.path}")
+
     test_user = {"email": "test@example.com", "password": "password123"}
 
+    # Log the request we're about to make
+    full_url = f"{settings.API_V1_STR}/users/"
+    logger.debug(f"Making POST request to: {full_url}")
+    logger.debug(f"Request body: {json.dumps(test_user, indent=2)}")
+
     # Create a new user
-    response = client.post("/users/", json=test_user)
-    assert response.status_code == 200
+    response = client.post(f"{settings.API_V1_STR}/users/", json=test_user)
+    # Log response details
+    logger.debug(f"Response status code: {response.status_code}")
+    logger.debug(f"Response headers: {dict(response.headers)}")
+    try:
+        logger.debug(f"Response body: {json.dumps(response.json(), indent=2)}")
+    except Exception as e:
+        logger.debug(f"Response text: {response.text}, {str(e)}")
+
+    assert response.status_code == 200, f"Expected 200 OK, got {response.status_code}"
     data = response.json()
     assert data["email"] == test_user["email"]
     assert "id" in data

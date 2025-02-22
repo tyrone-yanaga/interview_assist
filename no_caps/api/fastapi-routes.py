@@ -1,8 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import Optional
+import logging
 from db.session import get_db
+from db.schemas import UserCreate, UserResponse, UserList, User
+from db.crud.user import create_user
 from . import schemas, models
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 # Create routers
 user_router = APIRouter(prefix="/users", tags=["users"])
@@ -12,20 +19,42 @@ transcription_router = APIRouter(
 
 
 # User routes
-@user_router.get("", response_model=schemas.UserList)
+
+@user_router.post("/", response_model=UserResponse)
+async def create_new_user(user: UserCreate, db: Session = Depends(get_db)):
+    logger.debug(f"Received create user request for email: {user.email}")
+    try:
+        # Check if user already exists
+        existing_user = db.query(User).filter(User.email == user.email).first()
+        if existing_user:
+            logger.debug(f"User with email {user.email} already exists")
+            raise HTTPException(
+                status_code=400,
+                detail="Email already registered"
+            )
+
+        db_user = create_user(db=db, user=user)
+        logger.debug(f"Successfully created user with id: {db_user.id}")
+        return db_user
+    except Exception as e:
+        logger.error(f"Error creating user: {str(e)}")
+        raise
+
+
+@user_router.get("", response_model=UserList)
 async def list_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    users = db.query(models.User).offset(skip).limit(limit).all()
-    total = db.query(models.User).count()
+    users = db.query(User).offset(skip).limit(limit).all()
+    total = db.query(User).count()
     return {"items": users, "total": total}
 
 
-@user_router.get("/{user_id}", response_model=schemas.UserResponse)
+@user_router.get("/{user_id}", response_model=UserResponse)
 async def get_user(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.id == user_id).first()
+    user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
