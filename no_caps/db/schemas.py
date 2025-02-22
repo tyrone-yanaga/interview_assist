@@ -3,6 +3,7 @@ from pydantic import EmailStr, BaseModel
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from enum import Enum
+from pydantic import ConfigDict
 
 
 # Transcription Status Enum
@@ -27,8 +28,9 @@ class User(UserBase):
     is_active: bool
     audio_files: List["Audio"] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True
+    )
 
 
 # Audio Schemas
@@ -49,8 +51,9 @@ class Audio(AudioBase):
     owner: User
     transcription: Optional["Transcription"] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True
+    )
 
 
 # Transcription Schemas
@@ -75,8 +78,9 @@ class Transcription(TranscriptionBase):
     confidence_score: Optional[float] = None
     audio_file: Audio
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True
+    )
 
 
 # Update Schemas
@@ -109,8 +113,9 @@ class UserResponse(BaseModel):
     email: EmailStr
     is_active: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True
+    )
 
 
 class AudioResponse(BaseModel):
@@ -121,8 +126,9 @@ class AudioResponse(BaseModel):
     created_at: datetime
     user_id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True
+    )
 
 
 class TranscriptionResponse(BaseModel):
@@ -138,8 +144,9 @@ class TranscriptionResponse(BaseModel):
     word_count: Optional[int]
     confidence_score: Optional[float]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True
+    )
 
 
 # List Response Models
