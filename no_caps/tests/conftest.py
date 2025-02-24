@@ -39,6 +39,18 @@ def cleanup_db(test_db):
     Clean up the database after each test.
     """
     yield
-    # Delete all users
-    test_db.query(User).delete()
-    test_db.commit()
+    # Rollback any failed transaction
+    test_db.rollback()
+
+    try:
+        # Delete all users (this will cascade to audio files with the updated models)
+        test_db.query(User).delete()
+        test_db.commit()
+    except Exception as e:
+        # If deletion fails, rollback and try again with a fresh transaction
+        test_db.rollback()
+        raise e
+    finally:
+        # Ensure the session is clean
+        test_db.close()
+        
