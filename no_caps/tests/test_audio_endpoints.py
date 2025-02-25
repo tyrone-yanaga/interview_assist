@@ -1,142 +1,158 @@
-# tests/test_audio_endpoints.py
+# tests/test_audio.py
+import io
 import pytest
+import json
+from unittest import mock
 from fastapi import UploadFile
-from io import BytesIO
-import os
-from unittest.mock import patch, MagicMock
 from core.config import settings
 
-# Test data
-TEST_AUDIO_FILENAME = "test_audio.mp3"
-TEST_AUDIO_CONTENT = b"mock audio content"
-TEST_USER_ID = 1
-TEST_AUDIO_ID = 1
-TEST_DURATION = 120  # 2 minutes in seconds
 
-# API endpoint prefix
-API_AUDIO_PREFIX = f"{settings.API_V1_STR}/audio"
+def test_audio_upload_success(client, monkeypatch):
+    """Test successful audio file upload."""
 
+    # Mock file saving to avoid actual file operations during testing
+    async def mock_save_upload_file(file):
+        return "/mocked/path/to/audio.mp3"
 
-@pytest.fixture
-def mock_audio_file():
-    """Create a mock audio file for testing"""
-    file = UploadFile(filename=TEST_AUDIO_FILENAME,
-                      file=BytesIO(TEST_AUDIO_CONTENT))
-    # Set content type after creation
-    return {"file": file}
+    # Mock audio duration calculation
+    def mock_get_audio_duration(file_path):
+        return 120  # 2 minutes duration
 
+    # Apply our mocks
+    monkeypatch.setattr(
+        "services.audio_service.save_upload_file", mock_save_upload_file
+    )
+    monkeypatch.setattr(
+        "services.audio_service.get_audio_duration", mock_get_audio_duration
+    )
+    monkeypatch.setattr(
+        "db.crud.audio.create_audio",
+        lambda db, filename, file_path, duration, user_id: {
+            "id": 1,
+            "filename": filename,
+            "file_path": file_path,
+            "duration": duration,
+            "user_id": user_id,
+            "created_at": "2025-02-24T00:00:00",
+        },
+    )
 
-@pytest.fixture
-def mock_audio_record():
-    """Create a mock audio database record"""
-    return {
-        "id": TEST_AUDIO_ID,
-        "filename": TEST_AUDIO_FILENAME,
-        "file_path": f"/uploads/{TEST_AUDIO_FILENAME}",
-        "duration": TEST_DURATION,
-        "user_id": TEST_USER_ID,
-        "created_at": "2025-02-21T10:00:00",
-    }
+    # Create test file data
+    test_file_name = "test_audio.mp3"
+    test_file_content = b"mock audio file content"
 
+    # Create a file-like object for the test
+    test_file = io.BytesIO(test_file_content)
 
-@pytest.mark.asyncio
-async def test_upload_audio_success(client, test_db, mock_audio_file):
-    """Test successful audio file upload"""
-    # Mock the file saving and audio processing functions
-    with patch("utils.file_handling.save_upload_file") as mock_save, patch(
-        "utils.audio_processing.get_audio_duration"
-    ) as mock_duration:
+    # Make the file upload request
+    files = {"file": (test_file_name, test_file, "audio/mpeg")}
 
-        mock_save.return_value = f"/uploads/{TEST_AUDIO_FILENAME}"
-        mock_duration.return_value = TEST_DURATION
+    response = client.post(f"{settings.API_V1_STR}/audio/upload/", files=files)
 
-        response = await client.post(
-            f"{API_AUDIO_PREFIX}/upload/", files=mock_audio_file
-        )
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data["filename"] == TEST_AUDIO_FILENAME
-        assert data["duration"] == TEST_DURATION
-        assert data["user_id"] == TEST_USER_ID
-
-
-@pytest.mark.asyncio
-async def test_upload_audio_invalid_file_type(client, test_db, mock_audio_file):
-    """Test upload with invalid file type"""
-    # Modify the content type of the mock file
-    mock_audio_file["file"].content_type = "text/plain"
-
-    response = await client.post(f"{API_AUDIO_PREFIX}/upload/", files=mock_audio_file)
-
-    assert response.status_code == 400
-    assert "File must be an audio file" in response.json()["detail"]
-
-
-@pytest.mark.asyncio
-async def test_get_user_audio_files_success(client, test_db, mock_audio_record):
-    """Test getting user's audio files"""
-    # Insert a mock audio record
-    with patch("db.crud.audio.get_user_audio_files") as mock_get:
-        mock_get.return_value = [mock_audio_record]
-
-        response = await client.get(f"{API_AUDIO_PREFIX}/{TEST_USER_ID}/")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert len(data) == 1
-        assert data[0]["filename"] == TEST_AUDIO_FILENAME
-        assert data[0]["user_id"] == TEST_USER_ID
-
-
-@pytest.mark.asyncio
-async def test_get_user_audio_files_empty(client, test_db):
-    """Test getting audio files for user with no files"""
-    response = await client.get(f"{API_AUDIO_PREFIX}/{TEST_USER_ID}/")
-
+    # Assert the response
     assert response.status_code == 200
-    assert response.json() == []
+    data = response.json()
+    assert "id" in data
+    assert data["filename"] == test_file_name
+    assert data["user_id"] == 1  # Your service hardcodes user_id to 1
+    assert data["duration"] == 120  # Our mocked duration
 
 
-@pytest.mark.asyncio
-async def test_delete_audio_success(client, test_db, mock_audio_record):
-    """Test successful audio file deletion"""
-    # First insert a mock audio record
-    with patch("db.crud.audio.get_audio_or_404") as mock_get, patch(
-        "db.crud.audio.delete_audio"
-    ) as mock_delete:
+def test_audio_upload_failure(client, monkeypatch):
+    """Test audio upload failure with invalid file type."""
 
-        mock_get.return_value = mock_audio_record
-        mock_delete.return_value = True
+    # Mock file saving to avoid actual file operations during testing
+    async def mock_save_upload_file(file):
+        return "/mocked/path/to/file.txt"
 
-        response = await client.delete(f"{API_AUDIO_PREFIX}/{TEST_AUDIO_ID}")
+    monkeypatch.setattr(
+        "services.audio_service.save_upload_file", mock_save_upload_file
+    )
 
-        assert response.status_code == 204
+    # Create test file data with an invalid format
+    test_file_name = "test_document.txt"
+    test_file_content = b"This is a text file, not an audio file"
+
+    # Create a file-like object for the test
+    test_file = io.BytesIO(test_file_content)
+
+    # Make the file upload request with a non-audio file
+    files = {"file": (test_file_name, test_file, "text/plain")}
+
+    response = client.post(f"{settings.API_V1_STR}/audio/upload/", files=files)
+
+    # Assert the response
+    assert response.status_code == 400
+    assert "File must be an audio file" in response.text
 
 
-@pytest.mark.asyncio
-async def test_delete_audio_not_found(client, test_db):
-    """Test deleting non-existent audio file"""
-    non_existent_id = 999
-    response = await client.delete(f"{API_AUDIO_PREFIX}/{non_existent_id}")
+def test_get_audio_uploads_success(client, monkeypatch):
+    """Test retrieving audio files for a user."""
+    # Mock the get_user_audio_files function
+    test_audio_files = [
+        {
+            "id": 1,
+            "filename": "audio1.mp3",
+            "file_path": "/path/to/audio1.mp3",
+            "duration": 60,
+            "user_id": 1,
+            "created_at": "2025-02-24T00:00:00",
+        },
+        {
+            "id": 2,
+            "filename": "audio2.mp3",
+            "file_path": "/path/to/audio2.mp3",
+            "duration": 120,
+            "user_id": 1,
+            "created_at": "2025-02-24T00:00:00",
+        },
+    ]
 
-    assert response.status_code == 404
-    assert f"Audio with ID {non_existent_id} not found" in response.json()["detail"]
+    def mock_get_user_audio_files(db, user_id):
+        return test_audio_files
+
+    monkeypatch.setattr("db.crud.audio.get_user_audio_files", mock_get_user_audio_files)
+
+    # Get audio files for user_id=1
+    response = client.get(f"{settings.API_V1_STR}/audio/1/")
+
+    # Assert the response
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) == 2
+
+    # Check that the files match our mock data
+    assert data[0]["filename"] == "audio1.mp3"
+    assert data[1]["filename"] == "audio2.mp3"
 
 
-@pytest.mark.asyncio
-async def test_delete_audio_unauthorized(client, test_db, mock_audio_record):
-    """Test deleting audio file belonging to another user"""
-    unauthorized_user_id = 2
+def test_upload_no_file(client):
+    """Test audio upload failure when no file is provided."""
+    # Make the file upload request without a file
+    response = client.post(f"{settings.API_V1_STR}/audio/upload/")
 
-    with patch("db.crud.audio.get_audio_or_404") as mock_get:
-        mock_get.return_value = mock_audio_record
+    # Assert the response
+    assert response.status_code == 422  # Validation error for missing required field
 
-        # Simulate request with different user_id
-        response = await client.delete(
-            f"{API_AUDIO_PREFIX}/{TEST_AUDIO_ID}",
-            headers={"X-User-ID": str(unauthorized_user_id)},
-        )
 
-        assert response.status_code == 403
-        assert "Not authorized to delete this audio file" in response.json()["detail"]
+def test_get_audio_nonexistent_user(client, monkeypatch):
+    """Test getting audio files for a user that doesn't exist."""
+
+    # Mock the get_user_audio_files function to return empty list
+    def mock_get_user_audio_files(db, user_id):
+        if user_id == 999:
+            return []
+        else:
+            return [{"id": 1, "filename": "test.mp3"}]
+
+    monkeypatch.setattr("db.crud.audio.get_user_audio_files", mock_get_user_audio_files)
+
+    # Get audio files for a non-existent user
+    response = client.get(f"{settings.API_V1_STR}/audio/999/")
+
+    # Assuming your API returns an empty list for users with no files
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) == 0

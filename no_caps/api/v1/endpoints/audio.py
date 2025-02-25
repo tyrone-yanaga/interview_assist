@@ -16,5 +16,5 @@ async def upload_audio(
 
 
 @router.get("/{user_id}/")
-def get_audio(user_id: int, db: Session = Depends(get_db)):
-    return audio_service.get_audio_files(user_id=user_id, db=db)
+async def get_audio(user_id: int, db: Session = Depends(get_db)):
+    return await audio_service.get_audio_files(user_id=user_id, db=db)
