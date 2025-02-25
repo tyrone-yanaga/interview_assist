@@ -11,4 +11,7 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     is_active = Column(Boolean, default=True)
-    audio_files = relationship("Audio", back_populates="owner")
+    audio_files = relationship(
+        "Audio",
+        back_populates="owner",
+        cascade="all, delete-orphan")

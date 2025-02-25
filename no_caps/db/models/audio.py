@@ -13,9 +13,9 @@ class Audio(Base):
     file_path = Column(String)
     duration = Column(Integer)
     created_at = Column(DateTime, default=datetime.now())
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
     # relationships
     owner = relationship("User", back_populates="audio_files")
     transcription = relationship("Transcription",
                                  back_populates="audio_file",
-                                 uselist=False)
+                                 uselist=False, cascade="all, delete-orphan")

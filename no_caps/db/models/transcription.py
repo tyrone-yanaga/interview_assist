@@ -35,8 +35,13 @@ class Transcription(Base):
     error_message = Column(String, nullable=True)
 
     # Foreign keys and relationships
-    audio_id = Column(Integer, ForeignKey("audio_files.id"), unique=True)
-    audio_file = relationship("Audio", back_populates="transcription")
+    audio_id = Column(
+        Integer,
+        ForeignKey("audio_files.id", ondelete="CASCADE"),
+        unique=True)
+    audio_file = relationship("Audio",
+                              back_populates="transcription",
+                              cascade="all, delete")
 
     # Optional metadata
     word_count = Column(Integer, nullable=True)

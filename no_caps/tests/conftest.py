@@ -53,4 +53,3 @@ def cleanup_db(test_db):
     finally:
         # Ensure the session is clean
         test_db.close()
-        
