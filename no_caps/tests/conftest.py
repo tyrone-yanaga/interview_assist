@@ -11,9 +11,7 @@ from main import app
 SQLALCHEMY_DATABASE_URL = "postgresql://user:password@db:5432/audio_db"
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
-TestingSessionLocal = sessionmaker(autocommit=False,
-                                   autoflush=False,
-                                   bind=engine)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base.metadata.create_all(bind=engine)
 
@@ -53,3 +51,11 @@ def cleanup_db(test_db):
     finally:
         # Ensure the session is clean
         test_db.close()
+
+
+@pytest.fixture
+def auth_client(client):
+    """Return a test client with authentication headers."""
+    # Create a custom TestClient with auth headers
+    client.headers.update({"Authorization": "Bearer test_token"})
+    return client

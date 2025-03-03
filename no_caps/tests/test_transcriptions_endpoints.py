@@ -76,8 +76,22 @@ class TestTranscriptionEndpoints:
         transcription.error_message = "Test error message"
         return transcription
 
-    def test_create_transcription(self, client, monkeypatch, mock_user, mock_audio):
+    def test_create_transcription(self, auth_client, monkeypatch, mock_user, mock_audio):
         """Test creating a new transcription."""
+        # Create a mock JWT token
+        token = "test_token"
+
+        # Mock the JWT verification to always return your mock_user
+        def mock_verify_token(*args, **kwargs):
+            return {"sub": str(mock_user.id)}
+
+        monkeypatch.setattr(
+            "core.auth.verify_token",
+            mock_verify_token
+        )
+        # Add the Authorization header
+        headers = {"Authorization": f"Bearer {token}"}
+
         # Mock authentication
         monkeypatch.setattr(
             "api.v1.endpoints.transcription.get_current_user",
@@ -118,7 +132,9 @@ class TestTranscriptionEndpoints:
         )
 
         # Make request
-        response = client.post(f"{settings.API_V1_STR}/transcriptions/transcribe/1")
+        response = auth_client.post(
+            f"{settings.API_V1_STR}/transcriptions/transcribe/1",
+            headers=headers)
 
         # Check response
         assert response.status_code == 200
