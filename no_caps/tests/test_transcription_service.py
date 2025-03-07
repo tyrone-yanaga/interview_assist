@@ -1,6 +1,6 @@
 # tests/test_transcription_service.py
 import pytest
-import mock
+from unittest import mock
 from datetime import datetime
 from sqlalchemy.orm import Session
 from services.transcription_service import TranscriptionService
@@ -10,7 +10,7 @@ from db.models.user import User
 
 
 class TestTranscriptionService:
-    """Minimal test suite for TranscriptionService."""
+    """Core tests for TranscriptionService."""
 
     @pytest.fixture
     def transcription_service(self):
@@ -49,21 +49,20 @@ class TestTranscriptionService:
         return transcription
 
     @pytest.mark.asyncio
-    async def test_create_transcription_job(self, transcription_service, mock_db, mock_audio, monkeypatch):
+    async def test_create_transcription_job(
+        self, transcription_service, mock_db, mock_audio, monkeypatch
+    ):
         """Test creating a transcription job."""
         # Arrange
         mock_transcription = mock.MagicMock(spec=Transcription)
-        
-        # Create a function with async mock behavior
+
         async def mock_create(*args, **kwargs):
             return mock_transcription
-        
-        # Apply the patch
+
         monkeypatch.setattr(
-            "db.crud.transcription.TranscriptionCRUD.create_transcription", 
-            mock_create
+            "db.crud.transcription.TranscriptionCRUD.create_transcription", mock_create
         )
-        
+
         # Act
         result = await transcription_service.create_transcription_job(
             db=mock_db, audio_id=mock_audio.id, language="en"
@@ -73,105 +72,90 @@ class TestTranscriptionService:
         assert result == mock_transcription
 
     @pytest.mark.asyncio
-    async def test_process_transcription_success(self, transcription_service, mock_db, mock_transcription, monkeypatch):
+    async def test_process_transcription_success(
+        self, transcription_service, mock_db, mock_transcription, monkeypatch
+    ):
         """Test successful transcription processing."""
         # Arrange
         audio_path = "/path/to/test_audio.mp3"
-        
-        # Mock file existence check
-        def mock_file_exists(path):
-            return True
-        
-        monkeypatch.setattr("os.path.exists", mock_file_exists)
-        
-        # Mock get_transcription
+
+        monkeypatch.setattr("os.path.exists", lambda path: True)
+
         async def mock_get_transcription(*args, **kwargs):
             return mock_transcription
-        
+
         monkeypatch.setattr(
             "db.crud.transcription.TranscriptionCRUD.get_transcription",
-            mock_get_transcription
+            mock_get_transcription,
         )
-        
-        # Mock update_transcription_status
+
         async def mock_update_status(*args, **kwargs):
             return None
-        
+
         monkeypatch.setattr(
             "db.crud.transcription.TranscriptionCRUD.update_transcription_status",
-            mock_update_status
+            mock_update_status,
         )
-        
-        # Mock result from speech-to-text process
-        mock_result = {
-            "text": "This is a test transcription.",
-            "segments": [
-                {"start": 0.0, "end": 2.5, "text": "This is a test transcription."}
-            ],
-        }
-        
-        # Mock the transcription process directly in the service method
-        # Instead of trying to mock a non-existent speech_to_text function,
-        # mock the internal transcription process
-        
-        # First, we'll create a custom class with the method we want to mock
+
+        # Mock the internal transcription process
         class MockTranscriber:
             async def transcribe(self, *args, **kwargs):
-                return mock_result
-                
-        # Then add it as an attribute to the service
+                return {
+                    "text": "This is a test transcription.",
+                    "segments": [
+                        {
+                            "start": 0.0,
+                            "end": 2.5,
+                            "text": "This is a test transcription.",
+                        }
+                    ],
+                }
+
         transcription_service.transcriber = MockTranscriber()
-        
-        # Mock update_transcription_content
+
         async def mock_update_content(*args, **kwargs):
             return mock_transcription
-        
+
         monkeypatch.setattr(
             "db.crud.transcription.TranscriptionCRUD.update_transcription_content",
-            mock_update_content
+            mock_update_content,
         )
-        
+
         # Act - this should now use our mocked transcriber
         await transcription_service.process_transcription(
             db=mock_db, transcription_id=mock_transcription.id, audio_path=audio_path
         )
-        
-        # We don't need explicit assertions since we're just testing that it completes without errors
 
-    def test_has_access_to_transcription(self, transcription_service, mock_db, mock_transcription, mock_user, mock_audio):
+        # Success if no exceptions
+
+    def test_has_access_to_transcription(
+        self, transcription_service, mock_db, mock_transcription, mock_user, mock_audio
+    ):
         """Test permission verification for transcription access."""
-        # Arrange
-        # We need to patch the get_audio_or_404 function
-        # Let's try a different approach to mocking
-        
-        # Create a class to mock the function that's called internally
-        class MockAudioGetter:
-            def __init__(self, audio):
-                self.audio = audio
-                
-            def __call__(self, db, audio_id, user_id):
-                if user_id == self.audio.user_id:
-                    return self.audio
-                else:
-                    raise Exception("Not authorized")
-        
-        # Replace the function
-        original_get_audio = getattr(transcription_service, "get_audio_or_404", None)
-        transcription_service.get_audio_or_404 = MockAudioGetter(mock_audio)
-        
+
+        # Set up the mock for get_audio_or_404
+        def mock_get_audio(db, audio_id, user_id):
+            if user_id == mock_audio.user_id:
+                return mock_audio
+            raise Exception("Not authorized")
+
+        # Store original and replace
+        original_func = getattr(transcription_service, "get_audio_or_404", None)
+        transcription_service.get_audio_or_404 = mock_get_audio
+
         try:
-            # Case 1: User is the owner of the audio file
+            # Test authorized user
             result = transcription_service.has_access_to_transcription(
                 db=mock_db, transcription=mock_transcription, user_id=mock_user.id
             )
             assert result is True
-            
-            # Case 2: User is not the owner
+
+            # Test unauthorized user
             result = transcription_service.has_access_to_transcription(
                 db=mock_db, transcription=mock_transcription, user_id=999
             )
             assert result is False
         finally:
-            # Restore the original method if it existed
-            if original_get_audio:
-                transcription_service.get_audio_or_404 = original_get_audio
+            # Restore original if it existed
+            if original_func:
+                transcription_service.get_audio_or_404 = original_func
