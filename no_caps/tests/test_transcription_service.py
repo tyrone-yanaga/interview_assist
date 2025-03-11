@@ -4,7 +4,6 @@ from unittest import mock
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from services.transcription_service import TranscriptionService
-from db.crud.audio import get_audio_or_404
 from db.models.transcription import Transcription, TranscriptionStatus
 from db.models.audio import Audio
 from db.models.user import User
