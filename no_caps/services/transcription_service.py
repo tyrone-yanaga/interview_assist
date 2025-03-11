@@ -1,4 +1,5 @@
 from typing import Optional, Tuple, List, Dict
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 import os, whisper
 from pyannote.audio import Pipeline
@@ -142,11 +143,18 @@ class TranscriptionService:
             user_id: int) -> bool:
         """does the user have access to this transcription"""
 
-        audio = get_audio_or_404(
-            db,
-            audio_id=transcription.audio_id,
-            user_id=user_id)
-        if audio:
-            return True
-        else:
-            return False
+        try:
+            audio = get_audio_or_404(
+                db,
+                audio_id=transcription.audio_id,
+                user_id=user_id)
+            if audio: 
+                return True
+        except HTTPException as e:
+            if e.status_code == 404:
+                # Handle the 404 error specifically
+                return False
+            else:
+                # Re-raise any other HTTP exceptions
+                raise e
+        return False
