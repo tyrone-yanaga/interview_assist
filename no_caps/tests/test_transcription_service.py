@@ -121,15 +121,10 @@ class TestTranscriptionService:
             )
 
             # When the audio doesn't belong to the user
-            try:
-                result = transcription_service.has_access_to_transcription(
+            result = transcription_service.has_access_to_transcription(
                     db=mock_db, transcription=mock_transcription, user_id=999
                 )
-                # If we get here, it didn't raise the exception - test fails
-                assert False, "Expected HTTPException was not raised"
-            except HTTPException:
-                # This is what we expect - test passes
-                pass
+            assert result == False
 
             # Verify the mock was called with the right arguments
             mock_get_audio.assert_called_once_with(
