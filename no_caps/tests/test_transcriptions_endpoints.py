@@ -59,23 +59,57 @@ class TestTranscriptionEndpoints:
         transcription.confidence_score = 0.95
         return transcription
 
-    def test_create_transcription(self, auth_client, monkeypatch, mock_user, mock_audio):
+    def test_create_transcription(
+        self, auth_client, monkeypatch, mock_user, mock_audio
+    ):
         """Test creating a new transcription."""
-        # Skip authentication by directly mocking the get_current_user dependency
-        token = "test_token"
-        headers = {"Authorization": f"Bearer {token}"}
-        monkeypatch.setattr(
-            "api.v1.endpoints.transcription.get_current_user",
-            lambda *args, **kwargs: mock_user
+        # Create a real-looking token
+        from datetime import timedelta
+        from core.auth import create_access_token, get_current_user
+
+        # Set up the mock user with email
+        mock_user.email = "test@example.com"
+
+        # Create a real token
+        access_token = create_access_token(
+            data={"sub": mock_user.email}, expires_delta=timedelta(minutes=30)
         )
-        # Monkeypatch the core auth method that's causing the problem
-        monkeypatch.setattr("core.auth.jwt.decode", 
-                            lambda token, key, algorithms: {"sub": str(mock_user.id)})
-                            
+
+        # Add Authorization headers with the real token
+        headers = {"Authorization": f"Bearer {access_token}"}
+
+        # Mock the get_user_by_email function to return our mock user
+        monkeypatch.setattr(
+            "db.crud.user.get_user_by_email",
+            lambda db, email: mock_user if email == mock_user.email else None,
+        )
+
+        # The core issue - monkeypatch the fastapi dependency injection directly
+        # This bypasses the entire authentication flow and just returns our mock user
+        async def override_get_current_user():
+            return mock_user
+
+        # Apply the monkeypatch directly to the dependency
+        import importlib
+
+        transcription_module = importlib.import_module("api.v1.endpoints.transcription")
+        original_dependencies = getattr(transcription_module, "__dict__", {}).copy()
+
+        # Here's the key - we're directly patching the dependency lookup
+        for key, value in original_dependencies.items():
+            if (
+                hasattr(value, "dependencies")
+                and get_current_user in value.dependencies
+            ):
+                # Found the dependency on get_current_user, replace it with our override
+                for i, dep in enumerate(value.dependencies):
+                    if dep == get_current_user:
+                        value.dependencies[i] = override_get_current_user
+
         # Mock get_audio_or_404
         monkeypatch.setattr(
             "api.v1.endpoints.transcription.get_audio_or_404",
-            lambda *args, **kwargs: mock_audio
+            lambda *args, **kwargs: mock_audio,
         )
 
         # Mock transcription creation
@@ -88,21 +122,21 @@ class TestTranscriptionEndpoints:
 
         monkeypatch.setattr(
             "services.transcription_service.TranscriptionService.create_transcription_job",
-            mock_create_job
+            mock_create_job,
         )
+
         monkeypatch.setattr(
             "services.transcription_service.TranscriptionService.process_transcription",
-            lambda *args, **kwargs: None
+            lambda *args, **kwargs: None,
         )
+
         monkeypatch.setattr(
-            "fastapi.BackgroundTasks.add_task", 
-            lambda self, func, *args, **kwargs: None
+            "fastapi.BackgroundTasks.add_task", lambda self, func, *args, **kwargs: None
         )
 
         # Make request
         response = auth_client.post(
-            f"{settings.API_V1_STR}/transcriptions/transcribe/1",
-            headers=headers
+            f"{settings.API_V1_STR}/transcriptions/transcribe/1", headers=headers
         )
 
         # Check response
@@ -112,25 +146,38 @@ class TestTranscriptionEndpoints:
         assert data["status"] == "pending"
 
     def test_get_transcription_completed(
-        self, client, monkeypatch, mock_completed_transcription
+        self, client, monkeypatch, mock_completed_transcription, mock_user
     ):
         """Test getting a completed transcription."""
-        # Configure test client to include authorization headers by default
-        monkeypatch.setattr("core.auth.jwt.decode", 
-                           lambda token, key, algorithms: {"sub": str(mock_user.id)})
-                           
-        # Authorization is handled by the setup_auth fixture
+        # Add authorization header
+        headers = {"Authorization": "Bearer test_token"}
+
+        # Patch token validation
+        def mock_decode(*args, **kwargs):
+            return {"sub": str(mock_user.id)}
+
+        monkeypatch.setattr("jose.jwt.decode", mock_decode)
+
+        # Mock authentication function
+        async def mock_current_user(*args, **kwargs):
+            return mock_user
+
+        monkeypatch.setattr(
+            "api.v1.endpoints.transcription.get_current_user", mock_current_user
+        )
         monkeypatch.setattr(
             "db.crud.transcription.TranscriptionCRUD.get_transcription",
-            lambda *args, **kwargs: mock_completed_transcription
+            lambda *args, **kwargs: mock_completed_transcription,
         )
         monkeypatch.setattr(
             "services.transcription_service.TranscriptionService.has_access_to_transcription",
-            lambda *args, **kwargs: True
+            lambda *args, **kwargs: True,
         )
 
-        # Make request
-        response = client.get(f"{settings.API_V1_STR}/transcriptions/transcription/2")
+        # Make request with headers
+        response = client.get(
+            f"{settings.API_V1_STR}/transcriptions/transcription/2", headers=headers
+        )
 
         # Check response
         assert response.status_code == 200
@@ -146,11 +193,11 @@ class TestTranscriptionEndpoints:
         # Mock authentication and authorization
         monkeypatch.setattr(
             "api.v1.endpoints.transcription.get_current_user",
-            lambda *args, **kwargs: mock_user
+            lambda *args, **kwargs: mock_user,
         )
         monkeypatch.setattr(
             "services.transcription_service.TranscriptionService.has_access_to_transcription",
-            lambda *args, **kwargs: True
+            lambda *args, **kwargs: True,
         )
 
         # Mock update operation
@@ -164,7 +211,7 @@ class TestTranscriptionEndpoints:
 
         monkeypatch.setattr(
             "db.crud.transcription.TranscriptionCRUD.update_transcription_content",
-            mock_update
+            mock_update,
         )
 
         # Make request
@@ -177,8 +224,7 @@ class TestTranscriptionEndpoints:
             }
         }
         response = client.put(
-            f"{settings.API_V1_STR}/transcriptions/transcription/1", 
-            json=update_data
+            f"{settings.API_V1_STR}/transcriptions/transcription/1", json=update_data
         )
 
         # Check response
@@ -192,15 +238,17 @@ class TestTranscriptionEndpoints:
         # Mock authentication
         monkeypatch.setattr(
             "api.v1.endpoints.transcription.get_current_user",
-            lambda *args, **kwargs: mock_user
+            lambda *args, **kwargs: mock_user,
         )
         monkeypatch.setattr(
             "db.crud.transcription.TranscriptionCRUD.get_transcription",
-            lambda *args, **kwargs: None
+            lambda *args, **kwargs: None,
         )
 
-        # Make request
-        response = client.get(f"{settings.API_V1_STR}/transcriptions/transcription/999")
+        # Make request with headers
+        response = client.get(
+            f"{settings.API_V1_STR}/transcriptions/transcription/999", headers=headers
+        )
 
         # Check response
         assert response.status_code == 404
