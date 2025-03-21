@@ -8,8 +8,11 @@ from utils.audio_processing import get_audio_duration
 
 async def process_audio_upload(file: UploadFile, db: Session):
     if not file.content_type.startswith('audio/'):
-        raise HTTPException(status_code=400, detail="File must be an audio file")
-
+        print('FILE CONTENT TYPE:', file.content_type)
+        raise HTTPException(
+            status_code=400,
+            detail="File must be an audio file"
+        )
     file_path = await save_upload_file(file)
     duration = get_audio_duration(file_path)
 
