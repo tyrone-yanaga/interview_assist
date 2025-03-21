@@ -1,12 +1,18 @@
 # app/services/audio_service.py
-from fastapi import UploadFile, HTTPException, Depends, status
+from fastapi import UploadFile, HTTPException, Depends
 from sqlalchemy.orm import Session
 from db.crud import audio as audio_crud
 from utils.file_handling import save_upload_file
 from utils.audio_processing import get_audio_duration
 from core.auth import get_current_user
+from db.models import User
 
-async def process_audio_upload(file: UploadFile, db: Session, current_user = Depends(get_current_user)):
+
+async def process_audio_upload(
+    file: UploadFile,
+    db: Session,
+    current_user: User = Depends(get_current_user)
+):
     if not file.content_type.startswith('audio/'):
         print('FILE CONTENT TYPE:', file.content_type)
         raise HTTPException(

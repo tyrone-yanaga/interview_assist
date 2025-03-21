@@ -54,11 +54,10 @@ def create_user(db: Session, user: UserCreate) -> User:
     Returns:
         User: The created user
     """
-    hashed_password = get_password_hash(user.password)
     db_user = User(
         email=user.email,
-        hashed_password=hashed_password,
-        is_active=user.is_active
+        hashed_password=get_password_hash(user.password),
+        is_active=True  # Default to True
     )
     db.add(db_user)
     db.commit()
