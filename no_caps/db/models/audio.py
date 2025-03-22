@@ -12,6 +12,7 @@ class Audio(Base):
     filename = Column(String)
     file_path = Column(String)
     duration = Column(Integer)
+    detected_language = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.now())
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
     # relationships
