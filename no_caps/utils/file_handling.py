@@ -6,7 +6,8 @@ from pathlib import Path
 from fastapi import UploadFile, HTTPException
 from core.logging import logger
 
-UPLOAD_DIR = Path("uploads")
+BASE_DIR = Path(__file__).resolve().parent.parent
+UPLOAD_DIR = BASE_DIR / "uploads"
 ALLOWED_AUDIO_EXTENSIONS = {".mp3", ".wav", ".m4a", ".flac", ".ogg"}
 
 

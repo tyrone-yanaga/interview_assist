@@ -3,6 +3,10 @@ from typing import Optional
 from sqlalchemy.orm import Session
 from db.models.transcription import Transcription, TranscriptionStatus
 from datetime import datetime
+from fastapi import HTTPException, status
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class TranscriptionCRUD:
@@ -40,6 +44,26 @@ class TranscriptionCRUD:
         return db.query(Transcription).filter(
             Transcription.id == transcription_id
         ).first()
+
+    @staticmethod
+    def get_transcription_by_audio_id(
+        db: Session,
+        audio_id: int
+    ) -> Optional[Transcription]:
+        """Retrieve a transcription by audio ID."""
+        try:
+            transcription = db.query(Transcription).filter(
+                Transcription.audio_id == audio_id
+            ).first()
+            if not transcription:
+                logger.warning(f"No transcription found for audio ID: {audio_id}")
+            return transcription
+        except Exception as e:
+            logger.error(f"Error retrieving transcription for audio ID {audio_id}: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error retrieving transcription"
+            ) from e
 
     @staticmethod
     def update_transcription_content(
