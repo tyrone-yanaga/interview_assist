@@ -95,11 +95,13 @@ async def get_current_user(
         token_data = TokenData(email=email)
 
     except JWTError:
+
         raise credentials_exception
 
     # Get user from database
     user = get_user_by_email(db, email=token_data.email)
     if user is None:
+        print("core/auth.py: get_current_user - User not found")
         raise credentials_exception
 
     # Check if user is active

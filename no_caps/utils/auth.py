@@ -36,6 +36,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         payload = jwt.decode(token, options={"verify_signature": False})
         user_email = payload.get("email")
         if user_email is None:
+            print("utils/auth.py: get_current_user - Invalid token")
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
         return user_email
     except Exception:
