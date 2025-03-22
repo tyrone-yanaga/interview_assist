@@ -1,7 +1,8 @@
 from typing import Optional, Tuple, List, Dict
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
-import os, whisper
+from sqlalchemy.exc import IntegrityError
+from whisper import Whisper
 from pyannote.audio import Pipeline
 from db.crud.transcription import TranscriptionCRUD
 from db.crud.audio import get_audio_or_404
@@ -22,7 +23,7 @@ class TranscriptionService:
 
     def __init__(self):
         # Load Whisper model for transcription
-        self.whisper_model = whisper.load_model(settings.WHISPER_MODEL_SIZE)
+        self.whisper_model = Whisper.load_model(settings.WHISPER_MODEL_SIZE)
 
         # Load pyannote.audio pipeline for diarization
         self.diarization_pipeline = Pipeline.from_pretrained(
@@ -36,11 +37,17 @@ class TranscriptionService:
         language: str = "en"
     ) -> Transcription:
         """Create a new transcription job."""
-        return TranscriptionCRUD.create_transcription(
-            db=db,
-            audio_id=audio_id,
-            language=language
-        )
+        try:
+            return TranscriptionCRUD.create_transcription(
+                db=db,
+                audio_id=audio_id,
+                language=language
+            )
+        except IntegrityError as e:
+            if "duplicate key value violates unique constraint" in str(e):
+                # If a transcription already exists, return it
+                return TranscriptionCRUD.get_transcription(db, audio_id)
+            raise
 
     async def process_transcription(
         self,
@@ -49,7 +56,17 @@ class TranscriptionService:
         audio_path: str
     ) -> Tuple[bool, Optional[str]]:
         """Process the transcription job."""
-        try:
+        existing_transcription = TranscriptionCRUD.get_transcription_by_id(
+            db, transcription_id)
+
+        if existing_transcription and existing_transcription.status == TranscriptionStatus.FAILED:
+            # Update the existing record to retrying
+            TranscriptionCRUD.update_transcription_status(
+                db,
+                transcription_id,
+                TranscriptionStatus.RETRYING
+            )
+        else:
             # Update status to in progress
             TranscriptionCRUD.update_transcription_status(
                 db,
@@ -57,6 +74,7 @@ class TranscriptionService:
                 TranscriptionStatus.IN_PROGRESS
             )
 
+        try:
             # Perform diarization
             diarization = self.diarization_pipeline(audio_path)
 
