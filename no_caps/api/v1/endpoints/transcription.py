@@ -39,7 +39,7 @@ async def create_transcription(
     transcription = await transcription_service.create_transcription_job(
         db,
         audio_id=audio_id,
-        language=audio.detected_language or "en"
+        language="en"
     )
 
     # Add to background tasks
