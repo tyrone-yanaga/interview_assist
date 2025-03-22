@@ -1,6 +1,6 @@
 # app/api/v1/routers.py
 from fastapi import APIRouter
-from api.v1.endpoints import user, audio, transcription
+from api.v1.endpoints import user, audio, transcription, auth
 
 # Create main v1 router
 api_router = APIRouter()
@@ -22,4 +22,10 @@ api_router.include_router(
     transcription.router,
     prefix="/transcriptions",  # Note: plural form
     tags=["transcriptions"]
+)
+
+api_router.include_router(
+    auth.router,
+    prefix="/auth",
+    tags=["auth"]
 )
