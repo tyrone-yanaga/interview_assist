@@ -46,6 +46,14 @@ class TranscriptionCRUD:
         ).first()
 
     @staticmethod
+    def get_transcription_by_id(
+        db: Session,
+        transcription_id: int
+    ) -> Transcription:
+        """Get a transcription by its ID."""
+        return db.query(Transcription).filter(Transcription.id == transcription_id).first()
+
+    @staticmethod
     def get_transcription_by_audio_id(
         db: Session,
         audio_id: int

@@ -37,17 +37,20 @@ class TranscriptionService:
         language: str = "en"
     ) -> Transcription:
         """Create a new transcription job."""
-        try:
-            return TranscriptionCRUD.create_transcription(
-                db=db,
-                audio_id=audio_id,
-                language=language
-            )
-        except IntegrityError as e:
-            if "duplicate key value violates unique constraint" in str(e):
-                # If a transcription already exists, return it
-                return TranscriptionCRUD.get_transcription(db, audio_id)
-            raise
+        # Check if a transcription with the same audio_id already exists
+        existing_transcription = TranscriptionCRUD.get_transcription(db, audio_id)
+        if existing_transcription:
+            # Handle the case where a transcription already exists
+            # You can either update the existing record or raise an error
+            raise HTTPException(status_code=400, detail="Transcription with this audio_id already exists")
+        
+        # If no existing transcription, create a new one
+        transcription = TranscriptionCRUD.create_transcription(
+            db=db,
+            audio_id=audio_id,
+            language=language
+        )
+        return transcription
 
     async def process_transcription(
         self,
@@ -116,6 +119,21 @@ class TranscriptionService:
             )
 
             return False, error_msg
+
+    async def retry_transcription_job(self, db: Session, transcription_id: int) -> Transcription:
+        """Retry a transcription job by resetting its status and restarting the process."""
+        transcription = TranscriptionCRUD.get_transcription_by_id(db, transcription_id)
+        if not transcription:
+            raise HTTPException(status_code=404, detail="Transcription job not found")
+
+        # Reset the transcription status to PENDING
+        transcription.status = TranscriptionStatus.PENDING
+        transcription.completed_at = None
+        transcription.error_message = None
+        db.commit()
+        db.refresh(transcription)
+
+        return transcription
 
     def _combine_diarization_and_transcription(
         self,

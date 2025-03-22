@@ -1,7 +1,7 @@
 # app/api/v1/endpoints/transcription.py
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
-from typing import Dict
+from typing import Dict, Any
 from db.session import get_db
 from services.transcription_service import TranscriptionService
 from db.models.transcription import TranscriptionStatus
@@ -9,38 +9,41 @@ from db.crud.transcription import TranscriptionCRUD
 from db.crud.audio import get_audio_or_404
 from db.models.user import User
 from core.auth import get_current_user
+from schemas import TranscriptionResponse
 
 router = APIRouter()
 transcription_service = TranscriptionService()
 
 
-@router.post("/transcribe/{audio_id}")
+@router.post("/transcribe/{audio_id}", response_model=TranscriptionResponse)
 async def create_transcription(
     audio_id: int,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-) -> Dict:
-    """
-    Endpoint to create a new transcription job.
+    current_user: User = Depends(get_current_user),
+    background_tasks: BackgroundTasks = BackgroundTasks()
+) -> Any:
+    """Create a transcription job for the given audio file.
 
-    Responsibilities:
-    - Handle HTTP requests
-    - Validate input
-    - Manage authentication/authorization
-    - Delegate to service layer
-    - Return appropriate HTTP responses
+    If retry is True, restart the transcription process for an existing job.
     """
-
     # Check if audio exists and user has access
     audio = get_audio_or_404(db, audio_id, current_user.id)
 
-    # Create transcription job
-    transcription = await transcription_service.create_transcription_job(
-        db,
-        audio_id=audio_id,
-        language="en"
-    )
+    # Check if a transcription job already exists
+    existing_transcription = TranscriptionCRUD.get_transcription(db, audio_id)
+
+    # Create or update transcription job
+    if existing_transcription:
+        transcription = await transcription_service.retry_transcription_job(
+            db,
+            transcription_id=existing_transcription.id
+        )
+    else:
+        transcription = await transcription_service.create_transcription_job(
+            db,
+            audio_id=audio_id,
+            language="en"
+        )
 
     # Add to background tasks
     background_tasks.add_task(
