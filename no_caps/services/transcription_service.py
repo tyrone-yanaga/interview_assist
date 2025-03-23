@@ -1,8 +1,7 @@
 from typing import Optional, Tuple, List, Dict
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
-from whisper import Whisper
+import whisper
 from pyannote.audio import Pipeline
 from db.crud.transcription import TranscriptionCRUD
 from db.crud.audio import get_audio_or_404
@@ -23,7 +22,7 @@ class TranscriptionService:
 
     def __init__(self):
         # Load Whisper model for transcription
-        self.whisper_model = Whisper.load_model(settings.WHISPER_MODEL_SIZE)
+        self.whisper_model = whisper.load_model(settings.WHISPER_MODEL_SIZE)
 
         # Load pyannote.audio pipeline for diarization
         self.diarization_pipeline = Pipeline.from_pretrained(
@@ -120,11 +119,17 @@ class TranscriptionService:
 
             return False, error_msg
 
-    async def retry_transcription_job(self, db: Session, transcription_id: int) -> Transcription:
-        """Retry a transcription job by resetting its status and restarting the process."""
-        transcription = TranscriptionCRUD.get_transcription_by_id(db, transcription_id)
+    async def retry_transcription_job(
+        self, db: Session, transcription_id: int
+    ) -> Transcription:
+        """Retry a transcription job by resetting
+        its status and restarting the process."""
+        transcription = TranscriptionCRUD.get_transcription_by_id(
+            db, transcription_id
+        )
         if not transcription:
-            raise HTTPException(status_code=404, detail="Transcription job not found")
+            raise HTTPException(status_code=404,
+                                detail="Transcription job not found")
 
         # Reset the transcription status to PENDING
         transcription.status = TranscriptionStatus.PENDING

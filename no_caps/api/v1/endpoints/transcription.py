@@ -8,8 +8,8 @@ from db.models.transcription import TranscriptionStatus
 from db.crud.transcription import TranscriptionCRUD
 from db.crud.audio import get_audio_or_404
 from db.models.user import User
+from db.schemas import TranscriptionResponse
 from core.auth import get_current_user
-from schemas import TranscriptionResponse
 
 router = APIRouter()
 transcription_service = TranscriptionService()
@@ -30,7 +30,8 @@ async def create_transcription(
     audio = get_audio_or_404(db, audio_id, current_user.id)
 
     # Check if a transcription job already exists
-    existing_transcription = TranscriptionCRUD.get_transcription(db, audio_id)
+    existing_transcription = TranscriptionCRUD.get_transcription_by_audio_id(
+        db, audio_id)
 
     # Create or update transcription job
     if existing_transcription:
@@ -53,12 +54,8 @@ async def create_transcription(
         audio.file_path
     )
 
-    return {
-        "message": "Transcription job created",
-        "transcription_id": transcription.id,
-        "status": transcription.status
-    }
-
+    # Return the response model
+    return TranscriptionResponse.from_orm(transcription)
 
 @router.get("/transcription/{transcription_id}")
 async def get_transcription_status(

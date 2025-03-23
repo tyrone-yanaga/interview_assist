@@ -114,7 +114,8 @@ class UserResponse(BaseModel):
     is_active: bool
 
     model_config = ConfigDict(
-        from_attributes=True
+        from_attributes=True,
+        exclude={"audio_files"}
     )
 
 
@@ -127,7 +128,8 @@ class AudioResponse(BaseModel):
     user_id: int
 
     model_config = ConfigDict(
-        from_attributes=True
+        from_attributes=True,
+        exclude={"owner", "transcription"}
     )
 
 
@@ -145,7 +147,8 @@ class TranscriptionResponse(BaseModel):
     confidence_score: Optional[float]
 
     model_config = ConfigDict(
-        from_attributes=True
+        from_attributes=True,
+        exclude={"audio_file"}
     )
 
 
