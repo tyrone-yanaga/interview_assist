@@ -55,7 +55,7 @@ async def create_transcription(
     )
 
     # Return the response model
-    return TranscriptionResponse.from_orm(transcription)
+    return TranscriptionResponse.model_validate(transcription)
 
 @router.get("/transcription/{transcription_id}")
 async def get_transcription_status(
