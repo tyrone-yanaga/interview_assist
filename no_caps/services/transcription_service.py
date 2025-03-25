@@ -2,6 +2,7 @@ from typing import Optional, Tuple, List, Dict
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 import whisper
+import os
 from pyannote.audio import Pipeline
 from db.crud.transcription import TranscriptionCRUD
 from db.crud.audio import get_audio_or_404
@@ -51,6 +52,7 @@ class TranscriptionService:
         )
         return transcription
 
+
     async def process_transcription(
         self,
         db: Session,
@@ -75,6 +77,21 @@ class TranscriptionService:
                 transcription_id,
                 TranscriptionStatus.IN_PROGRESS
             )
+
+        # Add this file existence check
+        if not os.path.exists(audio_path):
+            error_msg = f"File {audio_path} does not exist"
+            logger.error(error_msg)
+            
+            # Update status to failed
+            TranscriptionCRUD.update_transcription_status(
+                db,
+                transcription_id,
+                TranscriptionStatus.FAILED,
+                error_msg
+            )
+            
+            return False, error_msg
 
         try:
             # Perform diarization
