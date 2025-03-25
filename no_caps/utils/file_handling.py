@@ -6,8 +6,7 @@ from pathlib import Path
 from fastapi import UploadFile, HTTPException
 from core.logging import logger
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-UPLOAD_DIR = BASE_DIR / "uploads"
+UPLOAD_DIR = Path("/no_caps/uploads")
 ALLOWED_AUDIO_EXTENSIONS = {".mp3", ".wav", ".m4a", ".flac", ".ogg"}
 
 
@@ -48,6 +47,9 @@ async def save_upload_file(file: UploadFile) -> str:
     except Exception as e:
         logger.error(f"Failed to save file {file.filename}: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to save file")
+    # In save_upload_file function
+    logger.info(f"In save_upload_file: saved file to: {file_path}")
+    print(f"print save_upload_file: saved file to: {file_path}")
 
     return str(file_path)
 

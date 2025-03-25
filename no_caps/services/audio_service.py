@@ -6,6 +6,8 @@ from utils.file_handling import save_upload_file
 from utils.audio_processing import get_audio_duration
 from core.auth import get_current_user
 from db.models import User
+import logging
+logger = logging.getLogger(__name__)
 
 
 async def process_audio_upload(
@@ -21,6 +23,9 @@ async def process_audio_upload(
         )
     file_path = await save_upload_file(file)
     duration = get_audio_duration(file_path)
+
+    logger.info(f"Saving file to: {file_path}")
+    print(f"Saving file to: {file_path}")
 
     return audio_crud.create_audio(
         db,
