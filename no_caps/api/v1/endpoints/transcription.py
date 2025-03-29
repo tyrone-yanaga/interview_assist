@@ -57,6 +57,7 @@ async def create_transcription(
     # Return the response model
     return TranscriptionResponse.model_validate(transcription)
 
+
 @router.get("/transcription/{transcription_id}")
 async def get_transcription_status(
     transcription_id: int,
@@ -114,18 +115,17 @@ async def update_transcription(
 
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    updated_transcription = await TranscriptionCRUD.update_transcription_content(
-        db,
-        transcription_id,
-        transcription_update)
+    updated_transcript = await TranscriptionCRUD.update_transcription_content(
+        db, transcription_id, transcription_update
+    )
 
-    if not updated_transcription:
+    if not updated_transcript:
         raise HTTPException(status_code=404, detail="Transcription not found")
 
     response = {
-        "id": updated_transcription.id,
-        "status": updated_transcription.status,
-        "created_at": updated_transcription.created_at
+        "id": updated_transcript.id,
+        "status": updated_transcript.status,
+        "created_at": updated_transcript.created_at
     }
 
     return response
