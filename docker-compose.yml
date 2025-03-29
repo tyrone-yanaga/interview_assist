@@ -19,7 +19,9 @@ services:
       start_period: 10s
 
   backend:
-    build: ./no_caps
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
     depends_on:
