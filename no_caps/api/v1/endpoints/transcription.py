@@ -70,7 +70,7 @@ async def get_transcription_status(
         raise HTTPException(status_code=404, detail="Transcription not found")
 
     # Check user has access to this transcription
-    if not TranscriptionService.has_access_to_transcription(
+    if not transcription_service.has_access_to_transcription(
             db=db,
             transcription=transcription,
             user_id=current_user.id):
