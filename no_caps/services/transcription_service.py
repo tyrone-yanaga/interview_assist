@@ -162,7 +162,7 @@ class TranscriptionService:
             # Extract the corresponding text from the transcription
             segment_text = ""
             for item in transcription_result["segments"]:
-                if item["start"] >= start_time and item["end"] <= end_time:
+                if (item["start"] <= end_time and item["end"] >= start_time):
                     segment_text += item["text"] + " "
 
             speaker_segments.append(
