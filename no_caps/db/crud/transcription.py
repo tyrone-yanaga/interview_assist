@@ -77,13 +77,26 @@ class TranscriptionCRUD:
     def update_transcription_content(
         db: Session,
         transcription_id: int,
-        content: str,
+        content: Optional[str] = None,
+        word_count: Optional[int] = None,
+        confidence_score: Optional[float] = None,
+        duration: Optional[float] = None,
+        language: Optional[str] = None,
     ) -> Transcription:
-        """Update transcription with completed content."""
+        """Update transcription with completed content and additional metadata."""
         transcription = TranscriptionCRUD.get_transcription(
             db, transcription_id)
         if transcription:
-            transcription.content = content
+            if content is not None:
+                transcription.content = content
+            if word_count is not None:
+                transcription.word_count = word_count
+            if confidence_score is not None:
+                transcription.confidence_score = confidence_score
+            if duration is not None:
+                transcription.duration = duration
+            if language is not None:
+                transcription.language = language
             transcription.status = TranscriptionStatus.COMPLETED
             transcription.completed_at = datetime.now()
 
