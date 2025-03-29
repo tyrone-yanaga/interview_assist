@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+
 @router.post("/login", response_model=Token)
 async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
@@ -19,7 +20,10 @@ async def login_for_access_token(
 ):
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
-        logger.warning("api/v1/endpoints/auth.py: login_for_access_token - User not found")
+        logger.warning(
+            "api/v1/endpoints/auth.py: login_for_access_token - "
+            "User not found"
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
